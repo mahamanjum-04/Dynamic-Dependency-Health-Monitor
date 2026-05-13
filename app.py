@@ -35,10 +35,13 @@ with st.sidebar:
     repo_url = st.text_input(
         "GitHub Repository URL",
         placeholder="https://github.com/owner/repo",
-        value="https://github.com/facebook/react"
+        value="https://github.com/aqua-tests-org/test-aqua-demo"
     )
 
-    use_mock_data = st.checkbox("Use Mock Data (No API Keys Required)", value=True)
+    use_mock_data = st.checkbox("Use Mock Data (No API Keys Required)", value=False)
+
+    # Add debug toggle
+    show_debug = st.checkbox("Show Debug Info", value=True)
 
     if st.button("🚀 Analyze Dependencies", type="primary"):
         st.session_state['analyze'] = True
@@ -46,10 +49,9 @@ with st.sidebar:
     st.divider()
     st.markdown("### 📊 Model Info")
     st.info("""
-    - **Predictive Model:** Random Forest + XGBoost + LSTM
-    - **XAI Method:** SHAP-based Explanation
-    - **Generative AI:** Code Generation
-    - **Data Sources:** GitHub, Libraries.io, NVD
+    - **Predictive Model:** Random Forest
+    - **XAI Method:** Feature-based Explanation
+    - **Generative AI:** Template-based Code Generation
     """)
 
 # Initialize session state
@@ -63,14 +65,25 @@ if 'priority_list' not in st.session_state:
 # Main analysis
 if st.session_state['analyze'] and repo_url:
     with st.spinner("🔄 Fetching dependencies and analyzing risks..."):
-        # Get dependencies
-        dependencies = get_dependencies_from_repo(repo_url, use_mock_data=use_mock_data)
+        # In app.py, when analyzing dependencies
+        try:
+            dependencies = get_dependencies_from_repo(repo_url, use_mock_data=use_mock_data)
+        except Exception as e:
+            st.error(f"❌ Failed to fetch dependencies: {str(e)}")
+            st.info("💡 Tip: Check the 'Use Mock Data' checkbox for testing without API calls.")
+            st.session_state['analyze'] = False
+            st.stop()
 
         if not dependencies:
             st.warning("No supported manifest files found (package.json, requirements.txt, etc.)")
             st.session_state['analyze'] = False
         else:
             st.success(f"✅ Found {len(dependencies)} dependencies")
+
+            # Show debug info
+            if show_debug:
+                with st.expander("🔍 Debug: Raw Dependencies Found"):
+                    st.json(dependencies)
 
             # Initialize predictor
             predictor = DependencyRiskPredictor()
@@ -96,6 +109,20 @@ if st.session_state['analyze'] and repo_url:
                     dep['dependent_count'] = get_dependent_count(dep['name'], dep['platform'],
                                                                  use_mock_data=use_mock_data)
                     dep['version_age_days'] = np.random.randint(1, 365)
+
+                    # Show debug info for first dependency
+                    if show_debug and idx == 0:
+                        with st.expander(f"🔍 Debug: Data for {dep['name']}"):
+                            st.json({
+                                'release_frequency': dep['release_frequency'],
+                                'past_vulnerabilities': dep['past_vulnerabilities'],
+                                'api_change_frequency': dep['api_change_frequency'],
+                                'stars': dep['stars'],
+                                'forks': dep['forks'],
+                                'open_issues': dep['open_issues'],
+                                'contributors': dep['contributors'],
+                                'dependent_count': dep['dependent_count']
+                            })
 
                     # Predict risk
                     risk_result = predictor.predict_risk(dep)
@@ -162,7 +189,7 @@ if st.session_state['results']:
                 st.markdown(f"{risk_color} **Risk Score:** {dep['risk_score']}")
                 st.markdown(f"**Confidence:** {dep['confidence'] * 100:.0f}%")
 
-                # Gauge chart
+                # Risk gauge - ADDED UNIQUE KEY HERE
                 fig = go.Figure(go.Indicator(
                     mode="gauge+number",
                     value=dep['risk_score'] * 100,
@@ -171,7 +198,7 @@ if st.session_state['results']:
                            "bar": {"color": "red" if dep['risk_score'] > 0.7 else "orange" if dep[
                                                                                                   'risk_score'] > 0.4 else "green"}}
                 ))
-                st.plotly_chart(fig, use_container_width=True)
+                st.plotly_chart(fig, use_container_width=True, key=f"gauge_{dep['name']}_{dep['current_version']}")
 
             with col2:
                 st.subheader("📈 Key Metrics")
@@ -196,7 +223,9 @@ if st.session_state['results']:
         'dependency': r['name'],
         'version': r['current_version'],
         'risk_score': r['risk_score'],
-        'classification': r['classification']
+        'classification': r['classification'],
+        'past_vulnerabilities': r.get('past_vulnerabilities', 0),
+        'release_frequency': r.get('release_frequency', 0)
     } for r in results])
 
     csv = results_df.to_csv(index=False)
