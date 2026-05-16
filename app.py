@@ -131,10 +131,10 @@ if st.session_state['analyze'] and repo_url:
                     dep['confidence'] = risk_result['confidence']
 
                     # Generate explanation
-                    dep['explanation'] = explain_risk(dep)
-
+                    dep['explanation'] = explain_risk(dep, model=predictor, X_train=None)
+                    
                     # Generate fix
-                    dep['fix'] = generate_fix(dep['name'], dep['current_version'], dep['risk_score'])
+                    dep['fix'] = generate_fix(dep['name'], dep['current_version'], dep['risk_score'], use_real_hf=True)
 
                     results.append(dep)
 
