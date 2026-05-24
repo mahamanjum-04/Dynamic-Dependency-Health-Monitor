@@ -6,6 +6,7 @@ import joblib
 import os
 from datetime import datetime, timedelta
 
+
 # PyTorch for LSTM (optional)
 try:
     import torch
@@ -343,9 +344,8 @@ class DependencyRiskPredictor:
         features_scaled = self.scaler.transform(features)
         model_proba = self.model.predict_proba(features_scaled)[0][1]
 
-        # Combine: 50% future prediction, 30% past, 20% XGBoost
-        final_risk = (future_risk * 0.5) + (past_risk * 0.3) + (model_proba * 0.2)
-        final_risk = min(final_risk, 1.0)
+        # Use only XGBoost (matches evaluate_models.py)
+        final_risk = model_proba
 
         classification = 'Risky' if final_risk > 0.45 else 'Safe'
 
