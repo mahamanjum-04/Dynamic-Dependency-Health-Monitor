@@ -173,7 +173,7 @@ def get_dependencies_from_repo(repo_url, use_mock_data=True):
     try:
         if "github.com/" in repo_url:
             parts = repo_url.rstrip("/").split("/")
-            owner, repo = parts[-2], parts[-1]
+            owner, repo = parts[-2], parts[-1].replace(".git", "")
         else:
             owner, repo = repo_url.split("/")[-2], repo_url.split("/")[-1]
     except Exception as e:
