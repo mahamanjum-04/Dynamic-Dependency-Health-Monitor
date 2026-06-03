@@ -46,6 +46,7 @@ def get_file_content_with_branch(owner, repo, filepath, branch):
 
     # Method 1: raw.githubusercontent.com (always works for public repos)
     raw_url = f"https://raw.githubusercontent.com/{owner}/{repo}/{branch}/{filepath}"
+    time.sleep(0.5)  # Add a short delay
     try:
         response = requests.get(raw_url, timeout=15)
         if response.status_code == 200:
