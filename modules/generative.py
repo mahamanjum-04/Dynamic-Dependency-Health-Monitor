@@ -89,6 +89,23 @@ npm install {dependency_name}@latest
 
 def generate_fix_template(dependency_name, current_version, risk_score):
     """Original template-based fix generation (fallback)"""
+
+    safe_versions = {
+        "flask": "3.0.3",
+        "requests": "2.32.3",
+        "urllib3": "2.2.2",
+        "pyjwt": "2.8.0",
+        "cryptography": "42.0.8",
+        "numpy": "1.26.4",
+        "pillow": "10.3.0",
+        "aiohttp": "3.9.5",
+        "certifi": "2024.2.2",
+        "mistune": "3.0.2",
+        "setuptools": "70.0.0",
+    }
+
+    safe_ver = safe_versions.get(dependency_name.lower(), "latest")
+
     if "react" in dependency_name.lower():
         suggested_version = "18.2.0"
         fix_type = "version upgrade"
@@ -104,23 +121,26 @@ def generate_fix_template(dependency_name, current_version, risk_score):
 npm install {dependency_name}@{suggested_version}
 ```'''
     elif "requests" in dependency_name.lower() or "urllib3" in dependency_name.lower() or "flask" in dependency_name.lower():
-        suggested_version = "latest"
+        suggested_version = safe_ver
         fix_type = "security patch"
         code_snippet = f'''```bash
-# Update {dependency_name} to latest version
+# 1. Update {dependency_name}
 pip install --upgrade {dependency_name}
 
-# Or specify exact safe version:
-# pip install {dependency_name}==<safe_version>
+# 2. Pin safe version in requirements.txt
+# Replace:  {dependency_name}=={current_version}
+# With:     {dependency_name}=={safe_ver}
 ```'''
     else:
-        suggested_version = "latest"
+        suggested_version = safe_ver
         fix_type = "version upgrade recommended"
         code_snippet = f'''```bash
-# Update {dependency_name} to latest version
+# 1. Update {dependency_name}
 pip install --upgrade {dependency_name}
-# OR
-npm install {dependency_name}@latest
+
+# 2. Pin safe version in requirements.txt
+# Replace:  {dependency_name}=={current_version}
+# With:     {dependency_name}=={safe_ver}
 ```'''
 
     if risk_score > 0.7:
@@ -133,6 +153,8 @@ npm install {dependency_name}@latest
 
     return {
         'suggested_version': suggested_version,
+        'safe_version': safe_ver,
+        'requirements_line': f"{dependency_name}=={safe_ver}",
         'fix_type': fix_type,
         'code_snippet': code_snippet,
         'mitigation_strategy': mitigation,

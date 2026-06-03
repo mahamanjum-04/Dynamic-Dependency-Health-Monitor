@@ -207,13 +207,13 @@ if st.session_state['results']:
                 st.metric("Dependent Packages", dep['dependent_count'])
                 st.metric("Stars", f"{dep['stars']:,}")
 
-            st.subheader("💡 Explanation")
-            st.info(dep['explanation'])
-
             st.subheader("🔧 Suggested Fix")
             fix = dep['fix']
             st.markdown(f"**Suggested Version:** `{fix['suggested_version']}`")
             st.markdown(f"**Mitigation:** {fix['mitigation_strategy']}")
+            if fix.get('requirements_line') and fix.get('suggested_version') != 'latest':
+                st.code(fix['requirements_line'], language="text")
+                st.caption("📋 Copy this line directly into your requirements.txt")
             with st.expander("📝 Code Snippet"):
                 st.code(fix['code_snippet'], language="bash")
 
