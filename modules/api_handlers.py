@@ -298,6 +298,8 @@ def get_dependencies_from_repo(repo_url, use_mock_data=True):
 - https://github.com/prabhu2k/vulnerable-demo-app (Python)
 - https://github.com/expressjs/express (Node.js)
 """
+        st.error(f"❌ No dependencies found for {owner}/{repo}")
+        st.error(f"Errors: {errors}")
         raise Exception(error_message)
 
     # Remove duplicates
@@ -412,6 +414,8 @@ def get_past_vulnerabilities(package_name, use_mock_data=True):
         'mistune': 2,  # CVE-2022-34749
         'ipython': 3,  # CVE-2022-21699
         'py': 2,  # CVE-2022-42969
+        'cryptography': 12,
+        'pillow': 8,
     }
 
     for pkg, count in vulnerable_packages.items():

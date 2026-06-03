@@ -344,8 +344,8 @@ class DependencyRiskPredictor:
         features_scaled = self.scaler.transform(features)
         model_proba = self.model.predict_proba(features_scaled)[0][1]
 
-        # Use only XGBoost (matches evaluate_models.py)
-        final_risk = model_proba
+        # To Hybrid with LSTM contribution
+        final_risk = (model_proba * 0.8) + (future_risk * 0.2)
 
         classification = 'Risky' if final_risk > 0.45 else 'Safe'
 
