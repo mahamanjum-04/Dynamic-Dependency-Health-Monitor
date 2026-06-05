@@ -102,18 +102,18 @@ def explain_with_simulation(dep_data):
 
     risk_factors = []
 
-    if dep_data.get('release_frequency', 1) < 0.5:
+    if (dep_data.get('release_frequency') or 1) < 0.5:
         risk_factors.append("low release frequency (inactive maintenance)")
 
-    if dep_data.get('past_vulnerabilities', 0) > 5:
+    if (dep_data.get('past_vulnerabilities') or 0) > 5:
         risk_factors.append(f"high number of past CVEs ({dep_data['past_vulnerabilities']} vulnerabilities)")
-    elif dep_data.get('past_vulnerabilities', 0) > 2:
+    elif (dep_data.get('past_vulnerabilities') or 0) > 2:
         risk_factors.append(f"moderate past vulnerabilities ({dep_data['past_vulnerabilities']} CVEs)")
 
-    if dep_data.get('api_change_frequency', 0) > 0.3:
+    if (dep_data.get('api_change_frequency') or 0) > 0.3:
         risk_factors.append("frequent API breaking changes")
 
-    if dep_data.get('contributors', 0) < 5:
+    if (dep_data.get('contributors') or 0) < 5:
         risk_factors.append("very few contributors (bus factor risk)")
 
     if not risk_factors:
