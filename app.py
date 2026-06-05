@@ -125,7 +125,9 @@ if st.session_state['analyze'] and repo_url:
                         'certifi': 2400,
                         'mistune': 1800,
                         'setuptools': 2000,
+                        'django': 2900,
                     }
+                    
                     dep['version_age_days'] = real_version_ages.get(dep['name'].lower(), None)
                     if dep['version_age_days'] is None:
                         st.warning(

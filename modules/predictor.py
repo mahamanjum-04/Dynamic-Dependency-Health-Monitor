@@ -240,7 +240,7 @@ class DependencyRiskPredictor:
         future_risk = 0.0
 
         # Factor 1: Days since last release (older = more likely to have undiscovered CVEs)
-        version_age = dep_data.get('version_age_days', 30)
+        version_age = dep_data.get('version_age_days') or 90
         if version_age > 365:
             future_risk += 0.35
         elif version_age > 180:
@@ -290,13 +290,13 @@ class DependencyRiskPredictor:
         else:
             risk += 0.05
 
-        release_freq = dep_data.get('release_frequency', 1)
+        release_freq = dep_data.get('release_frequency') or 1
         if release_freq < 0.5:
             risk += 0.15
         elif release_freq < 1:
             risk += 0.10
 
-        stars = dep_data.get('stars', 0)
+        stars = dep_data.get('stars') or 0
         if stars < 1000:
             risk += 0.15
         elif stars < 5000:
