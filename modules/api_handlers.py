@@ -313,8 +313,7 @@ def get_dependencies_from_repo(repo_url, use_mock_data=True):
             unique_deps.append(dep)
 
     st.success(f"✅ Total dependencies found: {len(unique_deps)}")
-    return unique_deps[:20]
-
+    return unique_deps
 
 def get_mock_dependencies():
     """Return realistic mock dependencies for testing"""
