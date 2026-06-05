@@ -46,9 +46,6 @@ with st.sidebar:
     if st.button("🚀 Analyze Dependencies", type="primary"):
         st.session_state['analyze'] = True
 
-    if st.button("🚀 Analyze Dependencies", type="primary"):
-        st.session_state['analyze'] = True
-
     if st.button("🗑️ Clear Cache & Refresh"):
         st.cache_data.clear()
         st.success("Cache cleared! Please re-enter your repo URL and click Analyze.")
