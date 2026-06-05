@@ -72,12 +72,21 @@ npm install {dependency_name}@latest
         else:
             mitigation = f"✅ **MONITOR** - {dependency_name} appears healthy"
 
+        safe_versions = {
+            "flask": "3.0.3", "requests": "2.32.3", "urllib3": "2.2.2",
+            "pyjwt": "2.8.0", "cryptography": "42.0.8", "numpy": "1.26.4",
+            "pillow": "10.3.0", "aiohttp": "3.9.5", "certifi": "2024.2.2",
+            "mistune": "3.0.2", "setuptools": "70.0.0",
+        }
+        safe_ver = safe_versions.get(dependency_name.lower(), "latest")
+
         return {
-            'suggested_version': 'latest',
+            'suggested_version': safe_ver,
+            'requirements_line': f"{dependency_name}=={safe_ver}",
             'fix_type': 'AI-generated fix (HuggingFace CodeGen)',
             'code_snippet': f'```\n{code_snippet}\n```',
             'mitigation_strategy': mitigation,
-            'ci_cd_alert': generate_ci_cd_alert(dependency_name, risk_score, 'latest'),
+            'ci_cd_alert': generate_ci_cd_alert(dependency_name, risk_score, safe_ver),
             'alternative': get_alternative_suggestion(dependency_name) if risk_score > 0.7 else None,
             'ai_generated': True,
             'model_used': 'Salesforce/codegen-350M-mono'
