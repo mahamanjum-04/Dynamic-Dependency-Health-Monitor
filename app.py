@@ -46,13 +46,21 @@ with st.sidebar:
     if st.button("🚀 Analyze Dependencies", type="primary"):
         st.session_state['analyze'] = True
 
+    if st.button("🚀 Analyze Dependencies", type="primary"):
+        st.session_state['analyze'] = True
+
+    if st.button("🗑️ Clear Cache & Refresh"):
+        st.cache_data.clear()
+        st.success("Cache cleared! Please re-enter your repo URL and click Analyze.")
+        st.rerun()
+
     st.divider()
     st.markdown("### 📊 Model Info")
     st.info("""
-    - **Predictive Model:** Random Forest
-    - **XAI Method:** Feature-based Explanation
-    - **Generative AI:** Template-based Code Generation
-    """)
+        - **Predictive Model:** XGBoost + LSTM Hybrid
+        - **XAI Method:** SHAP (SHapley Additive exPlanations)
+        - **Generative AI:** CodeGen (Salesforce/codegen-350M-mono)
+        """)
 
 # Initialize session state
 if 'analyze' not in st.session_state:
@@ -125,7 +133,7 @@ if st.session_state['analyze'] and repo_url:
                     if dep['version_age_days'] is None:
                         st.warning(
                             f"⚠️ {dep['name']}: version release date not found — version age will not contribute to the risk score.")
-                        
+
                     # Show debug info for first dependency
                     if show_debug and idx == 0:
                         with st.expander(f"🔍 Debug: Data for {dep['name']}"):
