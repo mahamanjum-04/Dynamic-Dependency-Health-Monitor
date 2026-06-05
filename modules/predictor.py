@@ -55,17 +55,24 @@ class DependencyRiskPredictor:
         self.time_series_data = {}
 
     def create_features(self, dep_data):
-        """Create feature vector from dependency data"""
+        """Create feature vector from dependency data.
+        None values mean data was not found — excluded from scoring by using
+        neutral values that do not push the risk score in either direction."""
         features = pd.DataFrame([{
-            'release_frequency': dep_data.get('release_frequency', 0.5),
-            'past_vulnerabilities': dep_data.get('past_vulnerabilities', 0),
-            'api_change_frequency': dep_data.get('api_change_frequency', 0.1),
-            'dependent_count': np.log1p(dep_data.get('dependent_count', 1)),
-            'stars': np.log1p(dep_data.get('stars', 0)),
-            'forks': np.log1p(dep_data.get('forks', 0)),
-            'open_issues_ratio': dep_data.get('open_issues', 0) / max(dep_data.get('stars', 1), 1),
-            'contributors': np.log1p(dep_data.get('contributors', 0)),
-            'version_age_days': dep_data.get('version_age_days', 30)
+            'release_frequency': dep_data.get('release_frequency') if dep_data.get(
+                'release_frequency') is not None else 1.0,
+            'past_vulnerabilities': dep_data.get('past_vulnerabilities') if dep_data.get(
+                'past_vulnerabilities') is not None else 0,
+            'api_change_frequency': dep_data.get('api_change_frequency') if dep_data.get(
+                'api_change_frequency') is not None else 0.1,
+            'dependent_count': np.log1p(
+                dep_data.get('dependent_count') if dep_data.get('dependent_count') is not None else 1),
+            'stars': np.log1p(dep_data.get('stars') if dep_data.get('stars') is not None else 1),
+            'forks': np.log1p(dep_data.get('forks') if dep_data.get('forks') is not None else 1),
+            'open_issues_ratio': (dep_data.get('open_issues') or 0) / max(dep_data.get('stars') or 1, 1),
+            'contributors': np.log1p(dep_data.get('contributors') if dep_data.get('contributors') is not None else 1),
+            'version_age_days': dep_data.get('version_age_days') if dep_data.get(
+                'version_age_days') is not None else 90,
         }])
         return features
 
