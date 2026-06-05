@@ -249,21 +249,21 @@ class DependencyRiskPredictor:
             future_risk += 0.15
 
         # Factor 2: Release frequency trend (declining = abandonment risk)
-        release_freq = dep_data.get('release_frequency', 1)
+        release_freq = dep_data.get('release_frequency') or 1
         if release_freq < 0.3:
             future_risk += 0.30
         elif release_freq < 0.6:
             future_risk += 0.20
 
         # Factor 3: Historical CVE rate (packages with many past CVEs get more)
-        vuln_count = dep_data.get('past_vulnerabilities', 0)
+        vuln_count = dep_data.get('past_vulnerabilities') or 0
         if vuln_count > 10:
             future_risk += 0.25
         elif vuln_count > 5:
             future_risk += 0.15
 
         # Factor 4: LSTM trend prediction
-        lstm_pred = self.predict_with_lstm(dep_data.get('name', ''), vuln_count)
+        lstm_pred = self.predict_with_lstm(dep_data.get('name') or '', vuln_count)
         future_risk += lstm_pred * 0.20
 
         return min(future_risk, 1.0)
@@ -272,7 +272,7 @@ class DependencyRiskPredictor:
         """Calculate risk from past data"""
         risk = 0.0
 
-        vuln_count = dep_data.get('past_vulnerabilities', 0)
+        vuln_count = dep_data.get('past_vulnerabilities') or 0
         vulnerable_packages = ['urllib3', 'requests', 'flask', 'pyjwt', 'aiohttp',
                                'lodash', 'axios', 'express', 'moment', 'certifi']
         is_known_vulnerable = any(v in dep_data.get('name', '').lower() for v in vulnerable_packages)
