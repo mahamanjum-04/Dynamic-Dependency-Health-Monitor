@@ -147,15 +147,14 @@ if st.session_state['analyze'] and repo_url:
                                 'dependent_count': dep['dependent_count']
                             })
 
-                    # Predict risk
-                    risk_result = predictor.predict_risk(dep)
-                    dep['risk_score'] = risk_result['risk_score']
-                    dep['classification'] = risk_result['classification']
-                    dep['confidence'] = risk_result['confidence']
+                    # Predict risk and merge all fields at once
+                    prediction = predictor.predict_risk(dep)
+                    print(f"DEBUG: {dep['name']} - prediction: {prediction}")  # Add this line
+                    dep.update(prediction) # This adds risk_score, classification, confidence, xgb_prediction, lstm_prediction, etc.
 
                     # Generate explanation
                     dep['explanation'] = explain_risk(dep, model=predictor, X_train=None)
-                    
+
                     # Generate fix
                     dep['fix'] = generate_fix(dep['name'], dep['current_version'], dep['risk_score'], use_real_hf=True)
 
@@ -193,6 +192,11 @@ if st.session_state['results']:
     # Priority List
     st.header("📋 Priority List for Developers")
     priority_df = pd.DataFrame(priority_list)
+    # Convert numeric columns properly, leave N/A as string
+    if 'risk_score' in priority_df.columns:
+        priority_df['risk_score'] = priority_df['risk_score'].apply(
+            lambda x: x if x == "N/A" else round(float(x), 3)
+        )
     st.dataframe(priority_df, use_container_width=True, hide_index=True)
 
     st.divider()
@@ -223,10 +227,34 @@ if st.session_state['results']:
 
             with col2:
                 st.subheader("📈 Key Metrics")
-                st.metric("Release Frequency", f"{dep['release_frequency']:.2f} /month")
-                st.metric("Past Vulnerabilities", dep['past_vulnerabilities'])
-                st.metric("Dependent Packages", dep['dependent_count'])
-                st.metric("Stars", f"{dep['stars']:,}")
+
+                # Release Frequency
+                release_freq = dep.get('release_frequency')
+                if release_freq is not None:
+                    st.metric("Release Frequency", f"{release_freq:.2f} /month")
+                else:
+                    st.metric("Release Frequency", "N/A")
+
+                # Past Vulnerabilities
+                past_vuln = dep.get('past_vulnerabilities')
+                if past_vuln is not None:
+                    st.metric("Past Vulnerabilities", past_vuln)
+                else:
+                    st.metric("Past Vulnerabilities", "N/A")
+
+                # Dependent Packages
+                dep_count = dep.get('dependent_count')
+                if dep_count is not None:
+                    st.metric("Dependent Packages", f"{dep_count:,}")
+                else:
+                    st.metric("Dependent Packages", "N/A")
+
+                # Stars
+                stars = dep.get('stars')
+                if stars is not None:
+                    st.metric("Stars", f"{stars:,}")
+                else:
+                    st.metric("Stars", "N/A")
 
             st.subheader("🔧 Suggested Fix")
             fix = dep['fix']

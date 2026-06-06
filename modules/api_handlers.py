@@ -338,25 +338,26 @@ def get_release_frequency(package_name, platform="npm", use_mock_data=True):
     # Old versions in your demo repo have low release frequency
     # reflecting their abandoned/stale state at those version numbers
     curated = {
-        'flask':        0.2,
-        'requests':     0.3,
-        'urllib3':      0.3,
-        'pyjwt':        0.2,
+        'flask': 0.2,
+        'requests': 0.3,
+        'urllib3': 0.3,
+        'pyjwt': 0.2,
         'cryptography': 0.2,
-        'numpy':        0.3,
-        'pillow':       0.2,
-        'aiohttp':      0.2,
-        'certifi':      0.15,
-        'mistune':      0.1,
-        'setuptools':   0.2,
-        'react':        4.0,
-        'axios':        3.0,
-        'express':      2.0,
-        'lodash':       1.5,
-        'next':         5.0,
-        'vue':          3.0,
-        'angular':      4.0,
-        'moment':       0.3,
+        'numpy': 0.3,
+        'pillow': 0.2,
+        'aiohttp': 0.2,
+        'certifi': 0.15,
+        'mistune': 0.1,
+        'setuptools': 0.2,
+        'react': 4.0,  # ADD THIS
+        'react-dom': 4.0,  # ADD THIS
+        'lodash': 1.5,  # ADD THIS
+        'axios': 3.0,  # ADD THIS
+        'express': 2.0,  # Already there
+        'node-fetch': 2.0,  # ADD THIS
+        'webpack': 3.0,  # ADD THIS
+        'minimist': 0.5,  # ADD THIS
+        'yargs-parser': 1.0,  # ADD THIS
     }
     pkg = package_name.lower()
     if pkg in curated:
@@ -368,22 +369,19 @@ def get_release_frequency(package_name, platform="npm", use_mock_data=True):
 def get_community_activity(package_name, platform="npm", use_mock_data=True):
     """Get community activity - curated values for known packages, None if unknown"""
     curated = {
-        'flask':        {'stars': 68000,  'forks': 18000, 'open_issues': 100, 'contributors': 800},
-        'requests':     {'stars': 52000,  'forks': 9500,  'open_issues': 150, 'contributors': 600},
-        'urllib3':      {'stars': 3800,   'forks': 1200,  'open_issues': 180, 'contributors': 120},
-        'pyjwt':        {'stars': 5000,   'forks': 800,   'open_issues': 50,  'contributors': 50},
-        'cryptography': {'stars': 6500,   'forks': 1400,  'open_issues': 90,  'contributors': 200},
-        'numpy':        {'stars': 27000,  'forks': 9000,  'open_issues': 2000,'contributors': 1500},
-        'pillow':       {'stars': 12000,  'forks': 2200,  'open_issues': 600, 'contributors': 400},
-        'aiohttp':      {'stars': 14000,  'forks': 2000,  'open_issues': 700, 'contributors': 300},
-        'certifi':      {'stars': 800,    'forks': 200,   'open_issues': 30,  'contributors': 30},
-        'mistune':      {'stars': 2300,   'forks': 300,   'open_issues': 40,  'contributors': 40},
-        'react':        {'stars': 220000, 'forks': 45000, 'open_issues': 800, 'contributors': 400},
-        'axios':        {'stars': 105000, 'forks': 11000, 'open_issues': 400, 'contributors': 200},
-        'express':      {'stars': 65000,  'forks': 14000, 'open_issues': 200, 'contributors': 300},
-        'lodash':       {'stars': 59000,  'forks': 7000,  'open_issues': 150, 'contributors': 100},
-        'moment':       {'stars': 48000,  'forks': 7000,  'open_issues': 200, 'contributors': 80},
-        'next':         {'stars': 125000, 'forks': 27000, 'open_issues': 300, 'contributors': 1000},
+        'flask': {'stars': 68000, 'forks': 18000, 'open_issues': 100, 'contributors': 800},
+        'requests': {'stars': 52000, 'forks': 9500, 'open_issues': 150, 'contributors': 600},
+        'react': {'stars': 220000, 'forks': 45000, 'open_issues': 800, 'contributors': 400},
+        'react-dom': {'stars': 220000, 'forks': 45000, 'open_issues': 800, 'contributors': 400},
+        'lodash': {'stars': 59000, 'forks': 7000, 'open_issues': 150, 'contributors': 100},
+        'axios': {'stars': 105000, 'forks': 11000, 'open_issues': 400, 'contributors': 200},
+        'express': {'stars': 65000, 'forks': 14000, 'open_issues': 200, 'contributors': 300},
+        'node-fetch': {'stars': 12000, 'forks': 1200, 'open_issues': 100, 'contributors': 80},
+        'webpack': {'stars': 64000, 'forks': 8500, 'open_issues': 500, 'contributors': 900},
+        'minimist': {'stars': 6000, 'forks': 300, 'open_issues': 30, 'contributors': 20},
+        'yargs-parser': {'stars': 5000, 'forks': 400, 'open_issues': 20, 'contributors': 30},
+        'moment': {'stars': 48000, 'forks': 7000, 'open_issues': 200, 'contributors': 80},
+        'next': {'stars': 125000, 'forks': 27000, 'open_issues': 300, 'contributors': 1000},
     }
     pkg = package_name.lower()
     if pkg in curated:
@@ -444,6 +442,14 @@ def get_past_vulnerabilities(package_name, use_mock_data=True):
         'aiohttp': 7, 'lodash': 12, 'axios': 8, 'express': 15,
         'moment': 10, 'certifi': 4, 'numpy': 6, 'setuptools': 3,
         'mistune': 2, 'cryptography': 8, 'pillow': 11,
+        # ===== ADD THESE FOR NPM PACKAGES =====
+        'react': 2,  # React has few CVEs
+        'react-dom': 2,
+        'node-fetch': 3,
+        'webpack': 4,
+        'webpack-cli': 1,
+        'minimist': 1,
+        'yargs-parser': 2,
     }
     for pkg, count in fallback.items():
         if pkg in package_name.lower():
@@ -455,11 +461,17 @@ def get_dependent_count(package_name, platform="npm", use_mock_data=True):
     """Get dependent count - curated values for known packages, None if unknown"""
     popular_packages = {
         'react': 50000,
+        'react-dom': 50000,
         'lodash': 40000,
-        'express': 30000,
         'axios': 25000,
+        'express': 30000,
         'moment': 20000,
         'next': 15000,
+        'node-fetch': 30000,  # ADD THIS
+        'webpack': 40000,  # ADD THIS
+        'webpack-cli': 20000,  # ADD THIS
+        'minimist': 15000,  # ADD THIS
+        'yargs-parser': 12000,  # ADD THIS
         'requests': 200000,
         'flask': 80000,
         'urllib3': 150000,

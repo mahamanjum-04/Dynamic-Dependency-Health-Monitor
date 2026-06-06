@@ -17,6 +17,7 @@ from xgboost import XGBClassifier
 import torch
 import torch.nn as nn
 import shap
+import os
 
 
 # ================================================================
@@ -71,13 +72,20 @@ def train_lstm(X_train_scaled, y_train, epochs=150, batch_size=128, lr=0.001):
 # DATASET GENERATION
 # ================================================================
 
-def generate_dataset(n_samples=5000, random_seed=42):
+def generate_dataset(n_samples=5000, random_seed=42, save_to_csv=True, csv_path="data/synthetic_dataset.csv"):
     """
     Generate synthetic dependency dataset (~51% risky, matching real labelling
     rule used throughout the project).
+    Optionally saves the dataset to a CSV file.
     """
     np.random.seed(random_seed)
 
+    # Define feature columns first
+    feature_cols = ['release_frequency', 'past_vulnerabilities', 'api_change_frequency',
+                    'dependent_count', 'stars', 'forks', 'open_issues_ratio',
+                    'contributors', 'version_age_days']
+
+    # Create DataFrame with features
     X = pd.DataFrame({
         'release_frequency':  np.random.exponential(1.5, n_samples),
         'past_vulnerabilities': np.random.poisson(1.5, n_samples),
@@ -91,6 +99,8 @@ def generate_dataset(n_samples=5000, random_seed=42):
     })
 
     labels = []
+    risk_scores = []
+
     for _, row in X.iterrows():
         score = 0
         if row['release_frequency'] < 0.3:   score += 0.4
@@ -104,8 +114,25 @@ def generate_dataset(n_samples=5000, random_seed=42):
         if row['contributors'] < 3:          score += 0.2
         if np.random.random() < 0.05:        score = 0.7 - score
         labels.append(1 if score > 0.45 else 0)
+        risk_scores.append(min(score, 1.0))
 
-    return X, np.array(labels)
+    # Add risk_score and label to the dataframe
+    X['risk_score'] = risk_scores
+    X['is_risky'] = labels
+    X['classification'] = X['risk_score'].apply(
+        lambda x: 'Critical' if x > 0.7 else ('Risky' if x > 0.45 else 'Safe')
+    )
+
+    # Save to CSV if requested
+    if save_to_csv:
+        # Create directory if it doesn't exist
+        os.makedirs(os.path.dirname(csv_path), exist_ok=True)
+        X.to_csv(csv_path, index=False)
+        print(f"   ✅ Saved synthetic dataset to {csv_path}")
+        print(f"   📊 Dataset shape: {X.shape}")
+        print(f"   📈 Risky samples: {sum(labels)} ({sum(labels)/len(labels)*100:.1f}%)")
+
+    return X, np.array(labels), feature_cols
 
 
 # ================================================================
@@ -118,16 +145,31 @@ def main():
     print("=" * 70)
 
     # ── Dataset ──────────────────────────────────────────────────
-    X, y = generate_dataset(n_samples=5000)
-    print(f"\n Dataset: 5 000 samples | {sum(y)} risky ({sum(y)/len(y)*100:.1f}%)")
+    print("\n Generating synthetic dataset...")
+    X, y, feature_cols = generate_dataset(n_samples=5000, save_to_csv=True, csv_path="data/synthetic_dataset.csv")
+    print(f"\n Dataset: {len(X)} samples | {sum(y)} risky ({sum(y)/len(y)*100:.1f}%)")
+    print(f" Features: {feature_cols}")
+    print(f" X shape: {X.shape}")
+    print(f" y shape: {y.shape}")
+
+    # Split features and target - use only the feature columns
+    X_features = X[feature_cols].copy()
+
+    print(f" X_features shape: {X_features.shape}")
 
     X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=0.2, random_state=42, stratify=y
+        X_features, y, test_size=0.2, random_state=42, stratify=y
     )
+
+    print(f" Training set shape: {X_train.shape}")
+    print(f" Test set shape: {X_test.shape}")
 
     scaler = StandardScaler()
     X_train_s = scaler.fit_transform(X_train)
-    X_test_s  = scaler.transform(X_test)
+    X_test_s = scaler.transform(X_test)
+
+    print(f" Scaled training shape: {X_train_s.shape}")
+    print(f" Scaled test shape: {X_test_s.shape}")
 
     results = {}
 
@@ -138,10 +180,11 @@ def main():
     y_pred = lr.predict(X_test_s)
     results['Logistic Regression'] = {
         'Accuracy':  accuracy_score(y_test, y_pred),
-        'Precision': precision_score(y_test, y_pred),
-        'Recall':    recall_score(y_test, y_pred),
-        'F1-Score':  f1_score(y_test, y_pred),
+        'Precision': precision_score(y_test, y_pred, zero_division=0),
+        'Recall':    recall_score(y_test, y_pred, zero_division=0),
+        'F1-Score':  f1_score(y_test, y_pred, zero_division=0),
     }
+    print(f"   Accuracy: {results['Logistic Regression']['Accuracy']:.3f}")
 
     # ── 2. Random Forest ─────────────────────────────────────────
     print(" Training Random Forest …")
@@ -150,25 +193,27 @@ def main():
     y_pred = rf.predict(X_test_s)
     results['Random Forest'] = {
         'Accuracy':  accuracy_score(y_test, y_pred),
-        'Precision': precision_score(y_test, y_pred),
-        'Recall':    recall_score(y_test, y_pred),
-        'F1-Score':  f1_score(y_test, y_pred),
+        'Precision': precision_score(y_test, y_pred, zero_division=0),
+        'Recall':    recall_score(y_test, y_pred, zero_division=0),
+        'F1-Score':  f1_score(y_test, y_pred, zero_division=0),
     }
+    print(f"   Accuracy: {results['Random Forest']['Accuracy']:.3f}")
 
     # ── 3. XGBoost Baseline ──────────────────────────────────────
     print(" Training XGBoost …")
     xgb = XGBClassifier(n_estimators=100, learning_rate=0.1,
                         random_state=42, eval_metric='logloss')
     xgb.fit(X_train_s, y_train)
-    y_pred_xgb  = xgb.predict(X_test_s)
+    y_pred_xgb = xgb.predict(X_test_s)
     y_proba_xgb = xgb.predict_proba(X_test_s)[:, 1]
 
     results['XGBoost (baseline)'] = {
         'Accuracy':  accuracy_score(y_test, y_pred_xgb),
-        'Precision': precision_score(y_test, y_pred_xgb),
-        'Recall':    recall_score(y_test, y_pred_xgb),
-        'F1-Score':  f1_score(y_test, y_pred_xgb),
+        'Precision': precision_score(y_test, y_pred_xgb, zero_division=0),
+        'Recall':    recall_score(y_test, y_pred_xgb, zero_division=0),
+        'F1-Score':  f1_score(y_test, y_pred_xgb, zero_division=0),
     }
+    print(f"   Accuracy: {results['XGBoost (baseline)']['Accuracy']:.3f}")
 
     # ── 4. XGBoost + LSTM Hybrid (Proposed) ──────────────────────
     print("\n Training LSTM (2 layers, 64 units, 150 epochs) …")
@@ -181,16 +226,16 @@ def main():
         ).squeeze().numpy()
 
     # Fusion: 20 % LSTM temporal signal + 80 % XGBoost structured signal
-    # (matches predictor.py's RiskScore formula spirit while maximising accuracy)
-    fused_proba  = 0.20 * y_proba_lstm + 0.80 * y_proba_xgb
+    fused_proba = 0.20 * y_proba_lstm + 0.80 * y_proba_xgb
     y_pred_hybrid = (fused_proba > 0.45).astype(int)
 
     results['XGBoost + LSTM (Proposed)'] = {
         'Accuracy':  accuracy_score(y_test, y_pred_hybrid),
-        'Precision': precision_score(y_test, y_pred_hybrid),
-        'Recall':    recall_score(y_test, y_pred_hybrid),
-        'F1-Score':  f1_score(y_test, y_pred_hybrid),
+        'Precision': precision_score(y_test, y_pred_hybrid, zero_division=0),
+        'Recall':    recall_score(y_test, y_pred_hybrid, zero_division=0),
+        'F1-Score':  f1_score(y_test, y_pred_hybrid, zero_division=0),
     }
+    print(f"   Accuracy: {results['XGBoost + LSTM (Proposed)']['Accuracy']:.3f}")
 
     # ── Print results table ───────────────────────────────────────
     print("\n" + "=" * 70)
@@ -242,17 +287,16 @@ def main():
 
     # ── SHAP Plots ───────────────────────────────────────────────
     print("\n Generating SHAP plots …")
-    explainer   = shap.TreeExplainer(xgb)
+    explainer = shap.TreeExplainer(xgb)
     shap_values = explainer.shap_values(X_test_s)
-    feature_names = X.columns.tolist()
 
     mean_shap = np.abs(shap_values).mean(0)
     print("   Mean |SHAP| per feature:")
-    for name, val in sorted(zip(feature_names, mean_shap), key=lambda x: -x[1]):
+    for name, val in sorted(zip(feature_cols, mean_shap), key=lambda x: -x[1]):
         print(f"     {name:<25} {val:.4f}")
 
     plt.figure(figsize=(10, 6))
-    shap.summary_plot(shap_values, X_test_s, feature_names=feature_names,
+    shap.summary_plot(shap_values, X_test_s, feature_names=feature_cols,
                       show=False, plot_type="bar")
     plt.title('SHAP Global Feature Importance', fontsize=13, fontweight='bold')
     plt.tight_layout()
@@ -261,7 +305,7 @@ def main():
     print("   Saved: shap_global_importance.png")
 
     plt.figure(figsize=(10, 6))
-    shap.summary_plot(shap_values, X_test_s, feature_names=feature_names,
+    shap.summary_plot(shap_values, X_test_s, feature_names=feature_cols,
                       show=False, plot_type="dot")
     plt.title('SHAP Beeswarm Plot', fontsize=13, fontweight='bold')
     plt.tight_layout()
@@ -271,15 +315,15 @@ def main():
 
     # ── Model Comparison Bar Chart ───────────────────────────────
     print("\n Generating model comparison bar chart …")
-    models   = list(results.keys())
-    metrics  = ['Accuracy', 'Precision', 'Recall', 'F1-Score']
-    colors   = ['#1f77b4', '#2ca02c', '#ff7f0e', '#d62728']
-    x        = np.arange(len(models))
-    width    = 0.18
+    models_list = list(results.keys())
+    metrics_list = ['Accuracy', 'Precision', 'Recall', 'F1-Score']
+    colors = ['#1f77b4', '#2ca02c', '#ff7f0e', '#d62728']
+    x = np.arange(len(models_list))
+    width = 0.18
 
     fig, ax = plt.subplots(figsize=(13, 7))
-    for i, (metric, color) in enumerate(zip(metrics, colors)):
-        vals = [results[m][metric] for m in models]
+    for i, (metric, color) in enumerate(zip(metrics_list, colors)):
+        vals = [results[m][metric] for m in models_list]
         bars = ax.bar(x + (i - 1.5) * width, vals, width,
                       label=metric, color=color)
         for bar in bars:
@@ -289,7 +333,7 @@ def main():
                     ha='center', va='bottom', fontsize=7.5)
 
     ax.set_xticks(x)
-    ax.set_xticklabels(models, fontsize=10)
+    ax.set_xticklabels(models_list, fontsize=10)
     ax.set_ylim(0, 1.08)
     ax.set_ylabel('Score', fontsize=12)
     ax.set_title('Model Performance Comparison', fontsize=14, fontweight='bold')
@@ -305,6 +349,7 @@ def main():
     print("Figures: confusion_matrix.png | roc_curve.png |")
     print("         shap_global_importance.png | shap_beeswarm.png |")
     print("         model_comparison.png")
+    print("Dataset saved: data/synthetic_dataset.csv")
     print("=" * 70)
 
 
